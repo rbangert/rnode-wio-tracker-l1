@@ -119,9 +119,9 @@ Use `--skip-flash` to re-provision without reflashing.
 
 ## Hardware test checklist
 
-- [ ] Firmware boots, enumerates over USB serial
-- [ ] `rnodeconf` (patched) provisions EEPROM and sets firmware hash
-- [ ] Radio initialises (`rnodeconf -i` reports radio online)
+- [x] Firmware boots, enumerates over USB serial
+- [x] `rnodeconf` (patched) provisions EEPROM and sets firmware hash
+- [x] Radio initialises (RADIO_STATE online at 915 MHz, no INITRADIO error)
 - [ ] TX/RX against another RNode at 868/915 MHz
 - [ ] OLED shows status screen
 - [ ] User LED blinks on RX/TX

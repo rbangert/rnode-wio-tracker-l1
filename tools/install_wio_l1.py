@@ -70,6 +70,12 @@ def wait_for_port(serial_number, fallback, timeout=40):
     if serial_number is None:
         time.sleep(8)
         return fallback
+    # rnodeconf returns before the device has reset, so let the old port drop off first
+    gone_deadline = time.time() + 10
+    while time.time() < gone_deadline:
+        if not any(p.serial_number == serial_number for p in list_ports.comports()):
+            break
+        time.sleep(0.5)
     deadline = time.time() + timeout
     while time.time() < deadline:
         for p in list_ports.comports():
