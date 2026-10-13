@@ -605,7 +605,10 @@ char bt_devname[11];
     kiss_indicate_btpin();
   }
 
-  void bt_debond_all() { }
+  void bt_debond_all() {
+    // Serial.println("Debonding all");
+    Bluefruit.Periph.clearBonds();
+  }
 
   void update_bt() {
     if (bt_allow_pairing && millis()-bt_pairing_started >= BT_PAIRING_TIMEOUT) {
