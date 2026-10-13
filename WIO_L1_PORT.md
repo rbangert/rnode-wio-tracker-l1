@@ -13,6 +13,16 @@ the device until they are (see "Provisioning" below).
 Uses the Adafruit nRF52 core with the `pca10056` variant (same as the T-Echo target), where
 Arduino pin numbers equal nRF GPIO numbers (`port * 32 + pin`).
 
+The L1 ships with SoftDevice **S140 7.3.0** (factory bootloader: UF2 Bootloader 0.9.2,
+Board-ID "TRACKER L1"), but `pca10056` assumes S140 6.1.1. The Wio L1 targets therefore override:
+
+- `build.sd_version=7.3.0`: compile against the 7.3.0 SoftDevice API headers (bundled in the core)
+- `build.ldscript=linker/nrf52840_s140_v7.ld`: application at `0x27000` instead of `0x26000`
+- `build.sd_fwid=0x0123`: DFU package requires S140 7.3.0
+
+`Device.h` uses the same `0x27000` application start for the firmware hash. A 6.1.1 build
+flashed onto this bootloader will not boot.
+
 ```
 arduino-cli core install adafruit:nrf52 --config-file arduino-cli.yaml
 arduino-cli lib install "Adafruit GFX Library" "Adafruit SH110X" "Adafruit SSD1306"
@@ -26,8 +36,20 @@ checked out as `rnode-wio-tracker-l1`, compile through a junction/symlink named 
 ```
 New-Item -ItemType Junction -Path $env:TEMP\RNode_Firmware -Target C:\Users\rbang\Projects\rnode-wio-tracker-l1
 cd $env:TEMP\RNode_Firmware
-arduino-cli compile --fqbn adafruit:nrf52:pca10056 --build-path $env:TEMP\rnode_build --build-property "compiler.cpp.extra_flags=`"-DBOARD_MODEL=0x45`"" .
+arduino-cli compile --fqbn adafruit:nrf52:pca10056 --build-path $env:TEMP\rnode_build `
+  --build-property "build.sd_version=7.3.0" --build-property "build.sd_fwid=0x0123" `
+  --build-property "build.ldscript=C:/Users/rbang/Projects/rnode-wio-tracker-l1/linker/nrf52840_s140_v7.ld" `
+  --build-property "compiler.cpp.extra_flags=`"-DBOARD_MODEL=0x45`"" .
 ```
+
+## Flashing
+
+- **DFU (preferred):** `adafruit-nrfutil dfu serial -pkg rnode_firmware_wio_l1_dfu.zip -p COMx -b 115200 --singlebank`.
+  This is the path rnodeconf uses, and it records the image size in the bootloader settings
+  page, which RNode reads (`0xFF008`) to compute its firmware hash.
+- **UF2:** double-tap reset, copy `rnode_firmware_wio_l1.uf2` onto the "TRACKER L1" drive.
+  Convenient, but whether this bootloader records the image size on UF2 writes is unverified;
+  if the firmware hash looks wrong after provisioning, reflash via DFU.
 
 Libraries (from the Makefile's prep targets): Crypto, Adafruit GFX, Adafruit SH110X,
 Adafruit SSD1306, Adafruit NeoPixel, XPowersLib, GxEPD2.
@@ -68,9 +90,7 @@ Sources: Zephyr `wio_tracker_l1.dts`, Meshtastic `variants/nrf52840/seeed_wio_tr
   autodetects at runtime. The address can be overridden with rnodeconf (`DISP_CUSTOM_ADDR`).
 - **Wire pins.** The `pca10056` variant defaults I2C to P0.26/P0.27, which are the GNSS UART on
   this board, so `display_init()` calls `Wire.setPins()` before the display driver starts I2C.
-- **SoftDevice.** The `pca10056` build links against S140 v6.1.1. Check `INFO_UF2.TXT` on the
-  "Tracker L1" drive (double-tap reset) to confirm the factory bootloader's SoftDevice matches,
-  before flashing.
+- **SoftDevice.** Confirmed S140 7.3.0 from `INFO_UF2.TXT`; handled as described under Build.
 - **Battery scale** reuses the T-Echo factor (same 1:2 divider, 3.6 V reference, 10-bit ADC).
   Calibrate against a multimeter.
 

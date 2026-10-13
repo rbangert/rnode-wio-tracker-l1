@@ -146,7 +146,7 @@ firmware-heltec_t114:
 	arduino-cli compile --log --fqbn Heltec_nRF52:Heltec_nRF52:HT-n5262 -e --build-property "build.partitions=no_ota" --build-property "upload.maximum_size=2097152" --build-property "compiler.cpp.extra_flags=\"-DBOARD_MODEL=0x3C\""
 
 firmware-wio_l1:
-	arduino-cli compile --log --fqbn adafruit:nrf52:pca10056 -e --build-property "compiler.cpp.extra_flags=\"-DBOARD_MODEL=0x45\""
+	arduino-cli compile --log --fqbn adafruit:nrf52:pca10056 -e --build-property "build.sd_version=7.3.0" --build-property "build.sd_fwid=0x0123" --build-property "build.ldscript=$(CURDIR)/linker/nrf52840_s140_v7.ld" --build-property "compiler.cpp.extra_flags=\"-DBOARD_MODEL=0x45\""
 
 firmware-techo:
 	arduino-cli compile --log --fqbn adafruit:nrf52:pca10056 -e --build-property "compiler.cpp.extra_flags=\"-DBOARD_MODEL=0x44\""
@@ -506,7 +506,7 @@ release-heltec_t114:
 	adafruit-nrfutil dfu genpkg --dev-type 0x0052 --application build/rnode_firmware_heltec_t114.hex Release/rnode_firmware_heltec_t114.zip
 
 release-wio_l1:
-	arduino-cli compile --fqbn adafruit:nrf52:pca10056 -e --build-property "compiler.cpp.extra_flags=\"-DBOARD_MODEL=0x45\""
+	arduino-cli compile --fqbn adafruit:nrf52:pca10056 -e --build-property "build.sd_version=7.3.0" --build-property "build.sd_fwid=0x0123" --build-property "build.ldscript=$(CURDIR)/linker/nrf52840_s140_v7.ld" --build-property "compiler.cpp.extra_flags=\"-DBOARD_MODEL=0x45\""
 	cp build/adafruit.nrf52.pca10056/RNode_Firmware.ino.hex build/rnode_firmware_wio_l1.hex
 	adafruit-nrfutil dfu genpkg --dev-type 0x0052 --application build/rnode_firmware_wio_l1.hex Release/rnode_firmware_wio_l1.zip
 
