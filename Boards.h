@@ -109,6 +109,10 @@
   #define MODEL_16            0x16 // T-Echo 433 MHz
   #define MODEL_17            0x17 // T-Echo 868/915 MHz
 
+  #define PRODUCT_WIO_L1      0x18 // Seeed Wio Tracker L1 (provisional ID, not assigned upstream)
+  #define BOARD_WIO_L1        0x45
+  #define MODEL_18            0x18 // Wio Tracker L1, 862-930 MHz
+
   #define PRODUCT_RAK4631     0x10
   #define BOARD_RAK4631       0x51
   #define MODEL_11            0x11 // RAK4631, 433 Mhz
@@ -894,6 +898,58 @@
       const int DISPLAY_CLK = PIN_T114_TFT_SCK;
       const int DISPLAY_BL_PIN = PIN_T114_TFT_BLGT;
       const int DISPLAY_RST = PIN_T114_TFT_RST;
+
+    #elif BOARD_MODEL == BOARD_WIO_L1
+      // Seeed Wio Tracker L1 / L1 Pro. Built against the adafruit:nrf52:pca10056
+      // variant, where Arduino pin numbers equal nRF GPIO numbers (port*32+pin).
+      #define _PINNUM(port, pin) ((port) * 32 + (pin))
+      #define MODEM SX1262
+      #define HAS_EEPROM false
+      #define HAS_DISPLAY true
+      #define HAS_BLUETOOTH false
+      #define HAS_BLE true
+      #define HAS_CONSOLE false
+      #define HAS_PMU true
+      #define HAS_NP false
+      #define HAS_SD false
+      #define HAS_TCXO true
+      #define HAS_RF_SWITCH_RX_TX true
+      #define HAS_BUSY true
+      #define HAS_INPUT true
+      #define HAS_SLEEP true
+      #define DIO2_AS_RF_SWITCH true
+      #define CONFIG_UART_BUFFER_SIZE 6144
+      #define CONFIG_QUEUE_SIZE 6144
+      #define CONFIG_QUEUE_MAX_LENGTH 200
+      #define EEPROM_SIZE 296
+      #define EEPROM_OFFSET EEPROM_SIZE-EEPROM_RESERVED
+      #define BLE_MANUFACTURER "Seeed Studio"
+      #define BLE_MODEL "Wio Tracker L1"
+
+      #define PIN_WIO_L1_LED     _PINNUM(1, 1)
+      #define PIN_WIO_L1_BAT_CTL _PINNUM(0, 4)
+      #define PIN_WIO_L1_VBAT    _PINNUM(0, 31)
+      #define PIN_WIO_L1_SDA     _PINNUM(0, 6)
+      #define PIN_WIO_L1_SCL     _PINNUM(0, 5)
+
+      const int pin_btn_usr1 = _PINNUM(0, 8);
+
+      // Wio-SX1262 module. RX enable drives the LNA,
+      // DIO2 switches the antenna to TX.
+      const int pin_rxen = _PINNUM(1, 8);
+      const int pin_txen = -1;
+      const int pin_reset = _PINNUM(1, 7);
+      const int pin_cs = _PINNUM(1, 14);
+      const int pin_sclk = _PINNUM(0, 30);
+      const int pin_mosi = _PINNUM(0, 28);
+      const int pin_miso = _PINNUM(0, 3);
+      const int pin_busy = _PINNUM(1, 10);
+      const int pin_dio = _PINNUM(0, 7);
+      const int pin_tcxo_enable = -1;
+
+      // Single user LED, shared for RX and TX indication
+      const int pin_led_rx = PIN_WIO_L1_LED;
+      const int pin_led_tx = PIN_WIO_L1_LED;
 
     #else
       #error An unsupported nRF board was selected. Cannot compile RNode firmware.

@@ -88,6 +88,8 @@ void setup() {
       pinMode(PIN_LED_GREEN, OUTPUT);
       pinMode(PIN_LED_BLUE, OUTPUT);
       delay(200);
+    #elif BOARD_MODEL == BOARD_WIO_L1
+      pinMode(pin_btn_usr1, INPUT_PULLUP);
     #endif
 
     if (!eeprom_begin()) { Serial.write("EEPROM initialisation failed.\r\n"); }
@@ -129,7 +131,7 @@ void setup() {
     boot_seq();
   #endif
 
-  #if BOARD_MODEL != BOARD_RAK4631 && BOARD_MODEL != BOARD_HELTEC_T114 && BOARD_MODEL != BOARD_TECHO && BOARD_MODEL != BOARD_T3S3 && BOARD_MODEL != BOARD_TBEAM_S_V1 && BOARD_MODEL != BOARD_HELTEC32_V4
+  #if BOARD_MODEL != BOARD_RAK4631 && BOARD_MODEL != BOARD_HELTEC_T114 && BOARD_MODEL != BOARD_TECHO && BOARD_MODEL != BOARD_WIO_L1 && BOARD_MODEL != BOARD_T3S3 && BOARD_MODEL != BOARD_TBEAM_S_V1 && BOARD_MODEL != BOARD_HELTEC32_V4
     // Some boards need to wait until the hardware UART is set up before booting
     // the full firmware. In the case of the RAK4631 and Heltec T114, the line below will wait
     // until a serial connection is actually established with a master. Thus, it
@@ -1796,6 +1798,12 @@ void sleep_now() {
         delay(2000);
         analogWrite(PIN_VEXT_EN, 0);
         delay(100);
+      #elif BOARD_MODEL == BOARD_WIO_L1
+        #if HAS_DISPLAY
+          display.oled_command(SH110X_DISPLAYOFF);
+        #endif
+        digitalWrite(pin_led_rx, LED_OFF);
+        digitalWrite(PIN_WIO_L1_BAT_CTL, LOW);
       #endif
       sd_power_gpregret_set(0, 0x6d);
       nrf_gpio_cfg_sense_input(pin_btn_usr1, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_LOW);
