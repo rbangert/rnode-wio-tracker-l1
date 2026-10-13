@@ -96,9 +96,26 @@ Sources: Zephyr `wio_tracker_l1.dts`, Meshtastic `variants/nrf52840/seeed_wio_tr
 
 ## Provisioning
 
-`rnodeconf` validates product/model IDs against its own tables. Until the Wio L1 IDs are added
-there, the device has to be provisioned with a locally patched `rnodeconf` (add the product,
-model, and firmware filename entries alongside the T-Echo ones in `RNS/Utilities/rnodeconf.py`).
+`rnodeconf` looks up product/model IDs in its own tables, and the Wio L1 IDs are not there
+upstream. `tools/patch_rnodeconf.py` adds them to the installed `rnodeconf` (idempotent; re-run
+after upgrading `rns`). `tools/install_wio_l1.py` does the whole install:
+
+```
+python -m venv .venv
+.venv\Scripts\pip install rns adafruit-nrfutil
+.venv\Scripts\python tools\install_wio_l1.py COM5
+```
+
+1. patches `rnodeconf`
+2. creates `~/.config/rnodeconf/firmware/signing.key` if missing (`rnodeconf --key`, never overwrites)
+3. flashes `build/wio_l1/rnode_firmware_wio_l1_dfu.zip` with `adafruit-nrfutil` (1200 baud touch
+   enters the bootloader; if that fails, double-tap reset and pass the bootloader's port)
+4. bootstraps the EEPROM: `rnodeconf PORT --rom --product 18 --model 18 --hwrev 1`
+5. reads the device-calculated firmware hash (`-L`) and stores it (`--firmware-hash`)
+6. prints `rnodeconf --info`
+
+The COM port can change across resets; the script follows the device by USB serial number.
+Use `--skip-flash` to re-provision without reflashing.
 
 ## Hardware test checklist
 
