@@ -22,6 +22,7 @@ import subprocess
 import sys
 import time
 
+import serial
 from serial.tools import list_ports
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -86,6 +87,31 @@ def wait_for_port(serial_number, fallback, timeout=40):
     sys.exit(f"Device with USB serial {serial_number} did not reappear within {timeout}s")
 
 
+def enter_bootloader(port, serial_number, timeout=20):
+    """Open the port at 1200 baud to reboot into the bootloader.
+
+    The bootloader enumerates with a different USB PID than the application,
+    so Windows usually gives it a different COM port. Returns that port.
+    """
+    app_pid = next((p.pid for p in list_ports.comports() if p.device.lower() == port.lower()), None)
+    try:
+        serial.Serial(port, 1200).close()
+    except serial.SerialException:
+        pass  # port vanishes as the device reboots
+    if serial_number is None:
+        time.sleep(3)
+        return port
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        for p in list_ports.comports():
+            if p.serial_number == serial_number and p.pid != app_pid:
+                time.sleep(1.5)
+                return p.device
+        time.sleep(0.5)
+    print("Bootloader port not detected; if the board is already in the bootloader, that's fine")
+    return port
+
+
 def main():
     parser = argparse.ArgumentParser(description="Flash and provision RNode firmware on a Wio Tracker L1")
     parser.add_argument("port", help="serial port of the Wio Tracker L1, e.g. COM5")
@@ -109,8 +135,9 @@ def main():
     if not args.skip_flash:
         if not os.path.isfile(args.package):
             sys.exit(f"DFU package not found: {args.package}")
+        bootloader_port = enter_bootloader(port, serial_number)
         run([nrfutil, "--verbose", "dfu", "serial", "-pkg", args.package,
-             "-p", port, "-b", "115200", "--singlebank", "--touch", "1200"])
+             "-p", bootloader_port, "-b", "115200", "--singlebank"])
         print("Waiting for the firmware to boot...")
         time.sleep(5)
         port = wait_for_port(serial_number, port)

@@ -86,8 +86,8 @@ Sources: Zephyr `wio_tracker_l1.dts`, Meshtastic `variants/nrf52840/seeed_wio_tr
 - **TCXO voltage 1.8 V.** Zephyr and Meshtastic both use 1.8 V for the L1. RNode's XIAO ESP32S3
   target uses 3.3 V for the same Wio-SX1262 module; if the radio fails to init, try 3.3 V in
   `sx126x.cpp` `enableTCXO()`.
-- **OLED is SH1106 at 0x3D** per Zephyr. Meshtastic's variant names the SSD1306 driver but
-  autodetects at runtime. The address can be overridden with rnodeconf (`DISP_CUSTOM_ADDR`).
+- **OLED is SH1106 at 0x3D** per Zephyr; confirmed working on hardware. The address can be
+  overridden with rnodeconf (`DISP_CUSTOM_ADDR`) if a unit uses 0x3C.
 - **Wire pins.** The `pca10056` variant defaults I2C to P0.26/P0.27, which are the GNSS UART on
   this board, so `display_init()` calls `Wire.setPins()` before the display driver starts I2C.
 - **SoftDevice.** Confirmed S140 7.3.0 from `INFO_UF2.TXT`; handled as described under Build.
@@ -108,14 +108,41 @@ python -m venv .venv
 
 1. patches `rnodeconf`
 2. creates `~/.config/rnodeconf/firmware/signing.key` if missing (`rnodeconf --key`, never overwrites)
-3. flashes `build/wio_l1/rnode_firmware_wio_l1_dfu.zip` with `adafruit-nrfutil` (1200 baud touch
-   enters the bootloader; if that fails, double-tap reset and pass the bootloader's port)
+3. reboots into the bootloader with a 1200 baud touch, finds the bootloader's port (it enumerates
+   as a different COM port, USB PID `0x1667` vs `0x80DA`) and flashes
+   `build/wio_l1/rnode_firmware_wio_l1_dfu.zip` with `adafruit-nrfutil`
 4. bootstraps the EEPROM: `rnodeconf PORT --rom --product 18 --model 18 --hwrev 1`
 5. reads the device-calculated firmware hash (`-L`) and stores it (`--firmware-hash`)
 6. prints `rnodeconf --info`
 
 The COM port can change across resets; the script follows the device by USB serial number.
-Use `--skip-flash` to re-provision without reflashing.
+Use `--skip-flash` to re-provision without reflashing. Re-running the full install on a
+provisioned board reflashes and updates the firmware hash; the EEPROM bootstrap step is skipped
+because a valid EEPROM is already present.
+
+**Do not install with UF2.** Copying the `.uf2` to the TRACKER L1 drive does not record the image
+size in the bootloader settings page, so RNode hashes zero bytes (`e3b0c442...`, SHA-256 of empty
+input) and the hash no longer matches. Confirmed on hardware; reflash over DFU to recover.
+
+## Bluetooth / Sideband
+
+1. `rnodeconf PORT -b` enables Bluetooth (persisted in EEPROM).
+2. `rnodeconf PORT -p` enters pairing mode. The firmware only allows pairing for
+   **35 seconds** (`BT_PAIRING_TIMEOUT`), no matter how long rnodeconf waits. The 6-digit PIN is
+   shown on the OLED and also printed by rnodeconf.
+3. Pair from the phone's Bluetooth settings with the device named `RNode XXXX`. The firmware
+   disconnects right after pairing by design; the app reconnects.
+4. In Sideband: Connectivity → connect via RNode; Hardware → RNode → Bluetooth on, frequency
+   (MHz), bandwidth (kHz), SF, CR, TX power. Restart Sideband.
+
+Gotchas seen on hardware:
+
+- The BLE address does not change when the firmware is replaced, so a phone that knew the factory
+  firmware keeps showing the cached name `Meshtastic_xxxx`. Sideband looks for bonded devices named
+  `RNode ...`, so it will not connect until the phone has the new name. Forget the device, toggle
+  Bluetooth, and re-pair. Uninstall or disconnect the Meshtastic app so it does not grab the board.
+- Upstream `bt_debond_all()` was a no-op on nRF52, so `CMD_BT_UNPAIR` (`0x70 0x01`) did nothing and
+  stale bonds could not be cleared. Fixed in this branch with `Bluefruit.Periph.clearBonds()`.
 
 ## Hardware test checklist
 
@@ -123,8 +150,8 @@ Use `--skip-flash` to re-provision without reflashing.
 - [x] `rnodeconf` (patched) provisions EEPROM and sets firmware hash
 - [x] Radio initialises (RADIO_STATE online at 915 MHz, no INITRADIO error)
 - [ ] TX/RX against another RNode at 868/915 MHz
-- [ ] OLED shows status screen
+- [x] OLED shows status screen (SH1106 at 0x3D)
 - [ ] User LED blinks on RX/TX
-- [ ] BLE pairing and KISS over BLE (Sideband)
+- [x] BLE pairing and KISS over BLE (Sideband on Android, 915 MHz / 125 kHz / SF8 / CR5)
 - [ ] Battery percentage plausible, matches multimeter
 - [ ] Long-press sleep and button wake
