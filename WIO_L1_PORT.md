@@ -34,11 +34,11 @@ Arduino requires the sketch folder to be named after `RNode_Firmware.ino`. Becau
 checked out as `rnode-wio-tracker-l1`, compile through a junction/symlink named `RNode_Firmware`:
 
 ```
-New-Item -ItemType Junction -Path $env:TEMP\RNode_Firmware -Target C:\Users\rbang\Projects\rnode-wio-tracker-l1
+New-Item -ItemType Junction -Path $env:TEMP\RNode_Firmware -Target <path to this repo>
 cd $env:TEMP\RNode_Firmware
 arduino-cli compile --fqbn adafruit:nrf52:pca10056 --build-path $env:TEMP\rnode_build `
   --build-property "build.sd_version=7.3.0" --build-property "build.sd_fwid=0x0123" `
-  --build-property "build.ldscript=C:/Users/rbang/Projects/rnode-wio-tracker-l1/linker/nrf52840_s140_v7.ld" `
+  --build-property "build.ldscript=<path to this repo>/linker/nrf52840_s140_v7.ld" `
   --build-property "compiler.cpp.extra_flags=`"-DBOARD_MODEL=0x45`"" .
 ```
 

@@ -1,3 +1,50 @@
+# RNode Firmware: Seeed Wio Tracker L1 port (unofficial)
+
+This is an **unofficial fork** of [markqvist/RNode_Firmware](https://github.com/markqvist/RNode_Firmware)
+that adds support for the **Seeed Studio Wio Tracker L1 / L1 Pro** (nRF52840 + Wio-SX1262,
+862-930 MHz). It is not affiliated with or endorsed by the RNode or Reticulum authors, and the
+upstream repository is a mirror that does not take contributions. Do not ask upstream for support
+with this port.
+
+## Disclosure
+
+The changes in this fork were developed with AI assistance (Anthropic's Claude, credited in each
+commit) under the direction of the repository owner, who reviewed them and tested them on real
+hardware. Pin assignments come from the Zephyr board definition and Meshtastic's variant for this
+board, not from guesswork. Everything outside the changes listed below is upstream code by Mark
+Qvist and contributors, unchanged, and remains under the original GPLv3 license and copyright
+notices.
+
+## What changed
+
+- `BOARD_WIO_L1` board definition (`Boards.h`, `Display.h`, `Power.h`, `Utilities.h`, `sx126x.cpp`,
+  `RNode_Firmware.ino`): SX1262 with 1.8 V TCXO, DIO2 RF switch and RX enable on P1.08, SH1106
+  OLED, single LED, battery ADC.
+- Build for the board's factory bootloader, which uses SoftDevice S140 **7.3.0** (application at
+  `0x27000`): `linker/nrf52840_s140_v7.ld`, `Device.h`, `Makefile` targets `firmware-wio_l1` and
+  `release-wio_l1`.
+- **nRF52 Bluetooth fix (all nRF52 boards):** `bt_debond_all()` was empty upstream, so the
+  unpair command could not clear stored BLE bonds. It now calls `Bluefruit.Periph.clearBonds()`.
+- `tools/patch_rnodeconf.py` and `tools/install_wio_l1.py` to flash and provision the board.
+
+Product/model IDs (`0x18`/`0x18`, board `0x45`) are **provisional** and not assigned upstream, so
+stock `rnodeconf` does not recognize the board; the patch script adds them locally.
+
+## Status
+
+Tested on one Wio Tracker L1 Pro: boots, provisions with `rnodeconf`, radio initialises at 915 MHz,
+OLED status screen works, BLE pairing and Sideband (Android) work over Bluetooth. **Not yet
+tested:** over-the-air TX/RX against another node, LED activity, battery calibration, sleep/wake.
+
+Full build, flashing, Bluetooth and troubleshooting notes: [WIO_L1_PORT.md](WIO_L1_PORT.md).
+
+Use at your own risk. Flashing replaces the factory firmware; the bootloader is untouched, so
+you can always double-tap reset and restore Meshtastic or MeshCore.
+
+---
+
+The original upstream README follows.
+
 > [!WARNING]
 > RNode is a free, community-developed project, and everything you need to use and build upon it is openly and freely available. Support honest, hard-working builders and maintainers, not [LLM-powered grifters](https://www.youtube.com/watch?v=_znz-3f_66Q) trying to scam you for thousands of dollars.
 >
