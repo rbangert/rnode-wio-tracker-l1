@@ -1,19 +1,12 @@
 # RNode Firmware: Seeed Wio Tracker L1 port (unofficial)
 
+<p align="center">
+  <img src="Documentation/images/wio_l1_rnode.jpg" alt="Wio Tracker L1 running RNode firmware, showing the status screen on its OLED" width="360">
+</p>
+
 This is an **unofficial fork** of [markqvist/RNode_Firmware](https://github.com/markqvist/RNode_Firmware)
 that adds support for the **Seeed Studio Wio Tracker L1 / L1 Pro** (nRF52840 + Wio-SX1262,
-862-930 MHz). It is not affiliated with or endorsed by the RNode or Reticulum authors, and the
-upstream repository is a mirror that does not take contributions. Do not ask upstream for support
-with this port.
-
-## Disclosure
-
-The changes in this fork were developed with AI assistance (Anthropic's Claude, credited in each
-commit) under the direction of the repository owner, who reviewed them and tested them on real
-hardware. Pin assignments come from the Zephyr board definition and Meshtastic's variant for this
-board, not from guesswork. Everything outside the changes listed below is upstream code by Mark
-Qvist and contributors, unchanged, and remains under the original GPLv3 license and copyright
-notices.
+862-930 MHz). 
 
 ## What changed
 
@@ -43,7 +36,7 @@ you can always double-tap reset and restore Meshtastic or MeshCore.
 
 ---
 
-The original upstream README follows.
+## The original upstream README follows.
 
 > [!WARNING]
 > RNode is a free, community-developed project, and everything you need to use and build upon it is openly and freely available. Support honest, hard-working builders and maintainers, not [LLM-powered grifters](https://www.youtube.com/watch?v=_znz-3f_66Q) trying to scam you for thousands of dollars.
