@@ -149,7 +149,9 @@ Gotchas seen on hardware:
 - [x] Firmware boots, enumerates over USB serial
 - [x] `rnodeconf` (patched) provisions EEPROM and sets firmware hash
 - [x] Radio initialises (RADIO_STATE online at 915 MHz, no INITRADIO error)
-- [ ] TX/RX against another RNode at 868/915 MHz
+- [x] TX/RX against another RNode at 868/915 MHz (Heltec LoRa32 v3, RNode 1.86, 915 MHz / 125 kHz /
+  SF8 / CR5 / 2 dBm on a bench: 10/10 each way, Heltec→Wio -35 dBm / +12.4 dB SNR,
+  Wio→Heltec -44 dBm / +13.3 dB SNR; `tools/rnode_link_test.py COM8 COM7`)
 - [x] OLED shows status screen (SH1106 at 0x3D)
 - [ ] User LED blinks on RX/TX
 - [x] BLE pairing and KISS over BLE (Sideband on Android, 915 MHz / 125 kHz / SF8 / CR5)
