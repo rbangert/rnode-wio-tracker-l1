@@ -18,7 +18,8 @@ Board-ID "TRACKER L1"), but `pca10056` assumes S140 6.1.1. The Wio L1 targets th
 
 - `build.sd_version=7.3.0`: compile against the 7.3.0 SoftDevice API headers (bundled in the core)
 - `build.ldscript=linker/nrf52840_s140_v7.ld`: application at `0x27000` instead of `0x26000`
-- `build.sd_fwid=0x0123`: DFU package requires S140 7.3.0
+- `build.sd_fwid=0x0123`: DFU package requires S140 7.3.0 (`make release-wio_l1` passes the same
+  `--sd-req 0x0123` to `adafruit-nrfutil dfu genpkg`)
 
 `Device.h` uses the same `0x27000` application start for the firmware hash. A 6.1.1 build
 flashed onto this bootloader will not boot.
@@ -44,7 +45,7 @@ arduino-cli compile --fqbn adafruit:nrf52:pca10056 --build-path $env:TEMP\rnode_
 
 ## Flashing
 
-- **DFU (preferred):** `adafruit-nrfutil dfu serial -pkg rnode_firmware_wio_l1_dfu.zip -p COMx -b 115200 --singlebank`.
+- **DFU (preferred):** `adafruit-nrfutil dfu serial -pkg Release/rnode_firmware_wio_l1.zip -p COMx -b 115200 --singlebank`.
   This is the path rnodeconf uses, and it records the image size in the bootloader settings
   page, which RNode reads (`0xFF008`) to compute its firmware hash.
 - **UF2:** double-tap reset, copy `rnode_firmware_wio_l1.uf2` onto the "TRACKER L1" drive.
@@ -113,7 +114,8 @@ python -m venv .venv
 2. creates `~/.config/rnodeconf/firmware/signing.key` if missing (`rnodeconf --key`, never overwrites)
 3. reboots into the bootloader with a 1200 baud touch, finds the bootloader's port (it enumerates
    as a different COM port, USB PID `0x1667` vs `0x80DA`) and flashes
-   `build/wio_l1/rnode_firmware_wio_l1_dfu.zip` with `adafruit-nrfutil`
+   `Release/rnode_firmware_wio_l1.zip` (from `make release-wio_l1`; override with `--package`)
+   with `adafruit-nrfutil`
 4. bootstraps the EEPROM: `rnodeconf PORT --rom --product 18 --model 18 --hwrev 1`
 5. reads the device-calculated firmware hash (`-L`) and stores it (`--firmware-hash`)
 6. sets the display timeout (`rnodeconf PORT -t 15`; change with `--display-timeout N`, `0` = never)

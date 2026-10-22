@@ -43,12 +43,14 @@ Tested on one Wio Tracker L1 Pro:
 
 **Not yet tested:** whether the battery percentage matches a multimeter reading.
 
-Quick install (Windows, from the repo folder):
+Quick install (Windows, from the repo folder). There are no prebuilt binaries yet, so build the
+DFU package first (toolchain setup is in [WIO_L1_PORT.md](WIO_L1_PORT.md#build)):
 
 ```
 python -m venv .venv
 .venv\Scripts\pip install rns adafruit-nrfutil
-.venv\Scripts\python tools\install_wio_l1.py COM5
+make release-wio_l1
+.venv\Scripts\python tools\install_wio_l1.py COM5 --package Release\rnode_firmware_wio_l1.zip
 ```
 
 Install over DFU as shown, not by copying the UF2 file: a UF2 install breaks the firmware hash.

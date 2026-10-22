@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import patch_rnodeconf
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_PACKAGE = os.path.join(ROOT, "build", "wio_l1", "rnode_firmware_wio_l1_dfu.zip")
+DEFAULT_PACKAGE = os.path.join(ROOT, "Release", "rnode_firmware_wio_l1.zip")  # make release-wio_l1
 SIGNING_KEY = os.path.expanduser("~/.config/rnodeconf/firmware/signing.key")
 
 PRODUCT = "18"
