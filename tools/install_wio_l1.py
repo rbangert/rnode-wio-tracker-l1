@@ -7,11 +7,13 @@ Steps:
   3. Flash the DFU package over USB serial (adafruit-nrfutil, 1200 baud touch)
   4. Bootstrap the EEPROM (rnodeconf --rom --product 18 --model 18)
   5. Read the firmware hash the device calculates and store it as the target hash
+  6. Set the display blanking timeout (rnodeconf -t, default 15 s)
 
 Usage:
   python tools/install_wio_l1.py COM5
   python tools/install_wio_l1.py COM5 --skip-flash     # provision only
   python tools/install_wio_l1.py COM5 --package path/to/dfu.zip
+  python tools/install_wio_l1.py COM5 --display-timeout 0   # never blank the screen
 
 Run it with the project venv, which has rns and adafruit-nrfutil installed.
 """
@@ -35,6 +37,7 @@ SIGNING_KEY = os.path.expanduser("~/.config/rnodeconf/firmware/signing.key")
 PRODUCT = "18"
 MODEL = "18"
 HWREV = "1"
+DEFAULT_DISPLAY_TIMEOUT = 15  # seconds; RNode never blanks the screen unless this is set
 
 
 def tool(name):
@@ -117,7 +120,11 @@ def main():
     parser.add_argument("port", help="serial port of the Wio Tracker L1, e.g. COM5")
     parser.add_argument("--package", default=DEFAULT_PACKAGE, help="DFU zip to flash")
     parser.add_argument("--skip-flash", action="store_true", help="only provision EEPROM and firmware hash")
+    parser.add_argument("--display-timeout", type=int, default=DEFAULT_DISPLAY_TIMEOUT,
+                        help=f"seconds before the screen blanks, 0 to disable (default {DEFAULT_DISPLAY_TIMEOUT})")
     args = parser.parse_args()
+    if not 0 <= args.display_timeout <= 255:
+        sys.exit("--display-timeout must be between 0 and 255 seconds")
 
     rnodeconf = tool("rnodeconf")
     nrfutil = tool("adafruit-nrfutil")
@@ -153,6 +160,10 @@ def main():
 
     run([rnodeconf, port, "--firmware-hash", firmware_hash])
     port = wait_for_port(serial_number, port)
+
+    # Saved straight to EEPROM; the device does not reset
+    run([rnodeconf, port, "-t", str(args.display_timeout)])
+    time.sleep(1)
 
     run([rnodeconf, port, "--info"])
     print("Done.")

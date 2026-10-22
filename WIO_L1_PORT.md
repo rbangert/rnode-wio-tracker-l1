@@ -91,6 +91,9 @@ Sources: Zephyr `wio_tracker_l1.dts`, Meshtastic `variants/nrf52840/seeed_wio_tr
 - **Wire pins.** The `pca10056` variant defaults I2C to P0.26/P0.27, which are the GNSS UART on
   this board, so `display_init()` calls `Wire.setPins()` before the display driver starts I2C.
 - **SoftDevice.** Confirmed S140 7.3.0 from `INFO_UF2.TXT`; handled as described under Build.
+- **LEDs.** P1.01 is the only software-controlled LED (Zephyr lists one user LED). The board's
+  other two LEDs are power/charge indicators driven by hardware. Meshtastic's `LED_BLUE` maps to
+  P1.00, which is the buzzer, not an LED.
 - **Battery scale** reuses the T-Echo factor (same 1:2 divider, 3.6 V reference, 10-bit ADC).
   Calibrate against a multimeter.
 
@@ -113,12 +116,19 @@ python -m venv .venv
    `build/wio_l1/rnode_firmware_wio_l1_dfu.zip` with `adafruit-nrfutil`
 4. bootstraps the EEPROM: `rnodeconf PORT --rom --product 18 --model 18 --hwrev 1`
 5. reads the device-calculated firmware hash (`-L`) and stores it (`--firmware-hash`)
-6. prints `rnodeconf --info`
+6. sets the display timeout (`rnodeconf PORT -t 15`; change with `--display-timeout N`, `0` = never)
+7. prints `rnodeconf --info`
 
 The COM port can change across resets; the script follows the device by USB serial number.
 Use `--skip-flash` to re-provision without reflashing. Re-running the full install on a
 provisioned board reflashes and updates the firmware hash; the EEPROM bootstrap step is skipped
 because a valid EEPROM is already present.
+
+**Display timeout.** RNode never blanks the screen unless a timeout is stored in EEPROM, so a
+freshly provisioned board keeps the OLED on. The installer sets 15 s; on an already provisioned
+board run `tools\set_display_timeout.py PORT [seconds]` (`0` disables).
+While blanked, the first button press only wakes the screen. Packets do not wake it; host
+commands such as enabling the radio do.
 
 **Do not install with UF2.** Copying the `.uf2` to the TRACKER L1 drive does not record the image
 size in the bootloader settings page, so RNode hashes zero bytes (`e3b0c442...`, SHA-256 of empty
@@ -153,7 +163,10 @@ Gotchas seen on hardware:
   SF8 / CR5 / 2 dBm on a bench: 10/10 each way, Heltec→Wio -35 dBm / +12.4 dB SNR,
   Wio→Heltec -44 dBm / +13.3 dB SNR; `tools/rnode_link_test.py COM8 COM7`)
 - [x] OLED shows status screen (SH1106 at 0x3D)
-- [ ] User LED blinks on RX/TX
+- [x] User LED blinks on RX/TX (P1.01, active-high, shared; lights for the full packet on both RX and TX,
+  checked at SF12 so each packet is ~1.5 s on air)
 - [x] BLE pairing and KISS over BLE (Sideband on Android, 915 MHz / 125 kHz / SF8 / CR5)
 - [ ] Battery percentage plausible, matches multimeter
-- [ ] Long-press sleep and button wake
+- [x] Long-press sleep and button wake (hold 0.7-5 s and release: OLED, LED and USB go off;
+  a tap reboots the board and the radio links again; re-ran Heltec link test after: 10/10 each way,
+  -39.5 / -44.8 dBm, +12.5 / +13.4 dB SNR)
