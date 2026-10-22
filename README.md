@@ -6,7 +6,7 @@
 
 This is an **unofficial fork** of [markqvist/RNode_Firmware](https://github.com/markqvist/RNode_Firmware)
 that adds support for the **Seeed Studio Wio Tracker L1 / L1 Pro** (nRF52840 + Wio-SX1262,
-862-930 MHz). 
+862-930 MHz).
 
 ## What changed
 
@@ -18,16 +18,40 @@ that adds support for the **Seeed Studio Wio Tracker L1 / L1 Pro** (nRF52840 + W
   `release-wio_l1`.
 - **nRF52 Bluetooth fix (all nRF52 boards):** `bt_debond_all()` was empty upstream, so the
   unpair command could not clear stored BLE bonds. It now calls `Bluefruit.Periph.clearBonds()`.
-- `tools/patch_rnodeconf.py` and `tools/install_wio_l1.py` to flash and provision the board.
+- Tools for this board (in `tools/`):
+  - `install_wio_l1.py`: flashes over DFU and provisions the board in one go, including a 15 s
+    screen timeout
+  - `patch_rnodeconf.py`: teaches your local `rnodeconf` the board's IDs
+  - `set_display_timeout.py`: changes the screen timeout on a board that's already provisioned
+  - `rnode_link_test.py`: raw LoRa TX/RX test between two RNodes
+  - `battery_check.py`: compares the firmware's battery reading with a multimeter
 
 Product/model IDs (`0x18`/`0x18`, board `0x45`) are **provisional** and not assigned upstream, so
 stock `rnodeconf` does not recognize the board; the patch script adds them locally.
 
 ## Status
 
-Tested on one Wio Tracker L1 Pro: boots, provisions with `rnodeconf`, radio initialises at 915 MHz,
-OLED status screen works, BLE pairing and Sideband (Android) work over Bluetooth. **Not yet
-tested:** over-the-air TX/RX against another node, LED activity, battery calibration, sleep/wake.
+Tested on one Wio Tracker L1 Pro:
+
+- boots and provisions with `rnodeconf`
+- LoRa TX/RX against a Heltec LoRa32 v3 running RNode 1.86: 10/10 packets each way at
+  915 MHz / 125 kHz / SF8 on a bench
+- OLED status screen and screen timeout
+- RX/TX LED
+- long-press sleep, and waking with the button
+- BLE pairing and Sideband (Android) over Bluetooth
+
+**Not yet tested:** whether the battery percentage matches a multimeter reading.
+
+Quick install (Windows, from the repo folder):
+
+```
+python -m venv .venv
+.venv\Scripts\pip install rns adafruit-nrfutil
+.venv\Scripts\python tools\install_wio_l1.py COM5
+```
+
+Install over DFU as shown, not by copying the UF2 file: a UF2 install breaks the firmware hash.
 
 Full build, flashing, Bluetooth and troubleshooting notes: [WIO_L1_PORT.md](WIO_L1_PORT.md).
 
