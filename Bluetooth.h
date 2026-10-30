@@ -395,10 +395,15 @@ char bt_devname[11];
 
   void bt_stop() {
     // Serial.println("BT Stop");
-    if (bt_state != BT_STATE_OFF) {
-      bt_allow_pairing = false;
-      bt_state = BT_STATE_OFF;
-    }
+    // Stop automatic advertising before disconnecting, or Bluefruit will
+    // advertise again when the disconnect event arrives.
+    bt_allow_pairing = false;
+    pairing_pin = 0;
+    bt_ssp_pin = 0;
+    bt_state = BT_STATE_OFF;
+    Bluefruit.Advertising.restartOnDisconnect(false);
+    if (Bluefruit.Advertising.isRunning()) Bluefruit.Advertising.stop();
+    if (Bluefruit.connected()) Bluefruit.disconnect(Bluefruit.connHandle());
   }
 
   void bt_flush() { if (bt_state == BT_STATE_CONNECTED) { SerialBT.flushTXD(); } }
@@ -408,12 +413,16 @@ char bt_devname[11];
     bt_allow_pairing = false;
     pairing_pin = 0;
     bt_ssp_pin = 0;
-    bt_state = BT_STATE_ON;
+    if (bt_state != BT_STATE_OFF) bt_state = BT_STATE_ON;
   }
 
   void bt_pairing_complete(uint16_t conn_handle, uint8_t auth_status) {
     // Serial.println("BT pairing complete");
     BLEConnection* connection = Bluefruit.Connection(conn_handle);
+    if (bt_state == BT_STATE_OFF) {
+      connection->disconnect();
+      return;
+    }
     if (auth_status == BLE_GAP_SEC_STATUS_SUCCESS) {
       ble_gap_conn_sec_mode_t security = connection->getSecureMode();
       // Serial.println("Bonding success");
@@ -461,6 +470,10 @@ char bt_devname[11];
 
   void bt_connect_callback(uint16_t conn_handle) {
     // Serial.println("Connect callback");
+    if (bt_state == BT_STATE_OFF) {
+      Bluefruit.disconnect(conn_handle);
+      return;
+    }
     bt_state = BT_STATE_CONNECTED;
     cable_state = CABLE_STATE_DISCONNECTED;
 
@@ -472,7 +485,7 @@ char bt_devname[11];
 
   void bt_disconnect_callback(uint16_t conn_handle, uint8_t reason) {
     // Serial.println("Disconnect callback");
-    if (reason != BLE_GAP_SEC_STATUS_SUCCESS) {
+    if (bt_state != BT_STATE_OFF) {
         bt_state = BT_STATE_ON;
     }
   }
@@ -505,8 +518,8 @@ char bt_devname[11];
       Bluefruit.autoConnLed(false);
       if (Bluefruit.begin()) {
         uint32_t pin = bt_get_passkey();
-        char pin_char[6];
-        sprintf(pin_char,"%lu", pin);
+        char pin_char[7];
+        snprintf(pin_char, sizeof(pin_char), "%06lu", (unsigned long)pin);
 
         Bluefruit.setTxPower(8);    // Check bluefruit.h for supported values
         Bluefruit.Security.setIOCaps(true, false, false); // display, yes; yes / no, no; keyboard, no
@@ -548,14 +561,13 @@ char bt_devname[11];
     // Serial.println("BT Start");
     if (bt_state == BT_STATE_OFF) {
       Bluefruit.setName(bt_devname);
-      bledis.setManufacturer(BLE_MANUFACTURER);
-      bledis.setModel(BLE_MODEL);
-      // start device information service
-      bledis.begin();
-      blebas.begin();
-
-      // Guard to ensure SerialBT service is not duplicated through BT being power cycled
+      // Register all GATT services only once, preserving handles and bonds
+      // across Bluetooth toggles.
       if (!SerialBT_init) {
+          bledis.setManufacturer(BLE_MANUFACTURER);
+          bledis.setModel(BLE_MODEL);
+          bledis.begin();
+          blebas.begin();
           SerialBT.bufferTXD(true); // enable buffering
 
           SerialBT.setPermission(SECMODE_ENC_WITH_MITM, SECMODE_ENC_WITH_MITM); // enable encryption for BLE serial
@@ -563,6 +575,10 @@ char bt_devname[11];
           SerialBT_init = true;
       }
 
+      // Each advertising start needs a fresh payload: duplicate Flags/name
+      // fields can make SoftDevice reject the next advertising start.
+      Bluefruit.Advertising.clearData();
+      Bluefruit.ScanResponse.clearData();
       Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
       Bluefruit.Advertising.addTxPower();
 
@@ -573,9 +589,12 @@ char bt_devname[11];
       // Use Scan response for Name
       Bluefruit.ScanResponse.addName();
 
-      Bluefruit.Advertising.start(0);
-
-      bt_state = BT_STATE_ON;
+      Bluefruit.Advertising.restartOnDisconnect(true);
+      if (Bluefruit.Advertising.start(0)) {
+        bt_state = BT_STATE_ON;
+      } else {
+        Bluefruit.Advertising.restartOnDisconnect(false);
+      }
      }
   }
 
@@ -593,10 +612,11 @@ char bt_devname[11];
   void bt_enable_pairing() {
     // Serial.println("BT enable pairing");
     if (bt_state == BT_STATE_OFF) bt_start();
+    if (bt_state == BT_STATE_OFF) return;
 
     uint32_t pin = bt_get_passkey();
-    char pin_char[6];
-    sprintf(pin_char,"%lu", pin);
+    char pin_char[7];
+    snprintf(pin_char, sizeof(pin_char), "%06lu", (unsigned long)pin);
     Bluefruit.Security.setPIN(pin_char);
 
     bt_allow_pairing = true;
